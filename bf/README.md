@@ -5,7 +5,7 @@ This directory contains the Brainfuck source program powering the container heal
 ## `healthcheck.bf`
 
 ### Purpose
-Executes a runtime hardware/memory simulation integrity check on the 30,000-cell tape and generates a RFC-compliant HTTP response stream with JSON body directly from Brainfuck instructions.
+Executes a runtime hardware/memory simulation integrity check on the 65,536-cell (64k) tape and generates a RFC-compliant HTTP response stream with JSON body directly from Brainfuck instructions.
 
 ### Memory Layout
 - **Cell 0**: Error Flag (`0` = Healthy / UP, `1` = Integrity Failure / DOWN)

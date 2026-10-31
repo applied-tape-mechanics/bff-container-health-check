@@ -46,7 +46,7 @@ class MockSocket extends EventEmitter {
 
 describe('Interpreter Basic VM Verification', () => {
   it('executes basic Brainfuck program correctly', () => {
-    const vm = new BrainfuckVM({ tapeSize: 30_000 });
+    const vm = new BrainfuckVM({ tapeSize: 65_536 });
     const prog = compile('++++++++[>++++++++<-]>+.');
     const out = vm.run(prog);
     assert.equal(Buffer.from(out).toString('utf-8'), 'A');

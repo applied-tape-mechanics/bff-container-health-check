@@ -34,7 +34,7 @@ export class HealthCheckEngine {
   readonly bfCode: string;
   readonly program: Program;
 
-  constructor(tapeSize: number = 30_000, bfPath: string = DEFAULT_BF_PATH) {
+  constructor(tapeSize: number = 65_536, bfPath: string = DEFAULT_BF_PATH) {
     this.vm = new BrainfuckVM({ tapeSize });
     this.bfCode = cleanCode(readFileSync(bfPath, 'utf-8'));
     this.program = compile(this.bfCode);

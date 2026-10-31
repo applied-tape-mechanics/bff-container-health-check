@@ -48,7 +48,7 @@ bff-container-health-check/
                     ┌───────▼────────┐
                     │  BF Integrity  │ (bf/healthcheck.bf)
                     │  & HTTP Engine │ Runs memory diagnostic test,
-                    │  (30k cells)   │ emits full HTTP response stream
+                    │  (64k cells)   │ emits full HTTP response stream
                     └────────────────┘
 ```
 
