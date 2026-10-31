@@ -3,7 +3,7 @@
 > **[Applied Tape Mechanics](https://github.com/applied-tape-mechanics)** — *Empirical computation and discrete field dynamics on minimal linear substrates.*
 > *Enterprise-grade cloud microservices—except the core business logic is pure Brainfuck. Best Friends Forever (`BFF`) with the most hostile programming language ever created.*
 
-A cloud-native HTTP and raw TCP health check sidecar microservice. Why trust a trivial `200 OK` string when a **Brainfuck program** ([`bf/healthcheck.bf`](bf/healthcheck.bf)) can actively verify memory cell read/write integrity, `10 - 10 == 0` subtraction, and 8-bit `255 + 1 == 0` overflow wrapping before emitting the raw `HTTP/1.1 200 OK` response stream byte-for-byte?
+A cloud-native HTTP and raw TCP health check sidecar microservice. Why trust a trivial `200 OK` string when a **Brainfuck program** ([`bf/healthcheck.bf`](bf/healthcheck.bf)) can actively verify memory cell read/write integrity, `10 - 10 == 0` subtraction, and 8-bit `255 + 1 == 0` overflow wrapping before emitting the raw `HTTP/1.1 200 OK` response stream byte-for-byte? Try the **[Live Diagnostic Dashboard on GitHub Pages](https://applied-tape-mechanics.github.io/bff-container-health-check/)** (running 100% client-side in your browser via the JavaScript Brainfuck VM), or run the full TypeScript [Fastify](https://fastify.dev) & TCP microservice locally/in Docker for live container probes and interactive OpenAPI/Swagger documentation (`/docs`).
 
 ---
 
