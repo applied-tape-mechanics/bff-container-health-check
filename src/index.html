@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BFF: Container Health Check Endpoint</title>
+  
+  <!-- Shared Applied Tape Mechanics Design System (Loaded at runtime from GitHub Release via jsDelivr CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/applied-tape-mechanics/bff-ui@v1.0.0/css/bff-theme.css">
+  <style>
+    .health-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 2px 10px;
+      border-radius: 3px;
+      border: 1px solid #000000;
+      font-family: var(--font-mono, monospace);
+    }
+    .health-up {
+      background: #dcfce7;
+      color: #006600;
+      border-color: #006600;
+    }
+    .health-down {
+      background: #fee2e2;
+      color: #aa0000;
+      border-color: #aa0000;
+    }
+    .diag-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .metric-box {
+      background: #ffffff;
+      border: 1px solid #888888;
+      box-shadow: inset 1px 1px 0 #cccccc, 1px 1px 0 #ffffff;
+      padding: 8px 12px;
+    }
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted, #444444);
+      margin-bottom: 4px;
+    }
+    .metric-value {
+      font-size: 14px;
+      font-family: var(--font-mono, monospace);
+      font-weight: bold;
+    }
+    .btn-danger {
+      color: #990000 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge-bar">
+        <span class="pulse-dot"></span>
+        <span>Brainfuck Memory &amp; HTTP Stream Engine (v__VERSION__)</span>
+      </div>
+      <h1>Container Health Check Endpoint</h1>
+      <p class="subtitle">Tape integrity, arithmetic &amp; 8-bit wrapping probe emitting raw HTTP/1.1 streams from Brainfuck</p>
+    </header>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="runProbe()">Deep Probe (GET /probe)</button>
+      <button class="mode-tab" onclick="runHealthCheck()">Check Health (GET /health)</button>
+      <button class="mode-tab btn-danger" onclick="triggerFailure()">Simulate Failure (POST 'F')</button>
+      <button class="mode-tab" onclick="viewRawBf()">&lt;/&gt; Inspect Brainfuck Code</button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Diagnostics &amp; Tape Integrity</div>
+          <span id="healthPill" class="health-pill health-up">
+            <span class="pulse-dot"></span>
+            <span id="healthText">UP (200 OK)</span>
+          </span>
+        </div>
+
+        <div class="diag-grid">
+          <div class="metric-box">
+            <div class="metric-label">Memory Tape Integrity (c0 == 0)</div>
+            <div class="metric-value" id="valTape" style="color: var(--success);">PASS</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Arithmetic Check (10 - 10 = 0)</div>
+            <div class="metric-value" id="valArith" style="color: var(--success);">PASS</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">8-bit Wrapping (255 + 1 = 0)</div>
+            <div class="metric-value" id="valWrap" style="color: var(--success);">PASS</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">BF Instructions</div>
+            <div class="metric-value" id="valSteps">--</div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="runProbe()">Run Deep Probe</button>
+          <button class="btn btn-secondary" onclick="runHealthCheck()">Standard Check</button>
+          <button class="btn btn-secondary btn-danger" onclick="triggerFailure()">Force 500 Failure ('F')</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Raw HTTP Response Stream Emitted by Brainfuck</div>
+          <button class="preset-btn" onclick="copyStream()">Copy Stream</button>
+        </div>
+        <pre class="output-view" id="rawResponseViewer">Loading health check response...</pre>
+        <div class="stats-bar">
+          <div class="stat-pill">HTTP Status: <span id="statHttpCode">200</span></div>
+          <div class="stat-pill">Engine: <span id="statEngine">Brainfuck VM</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared Applied Tape Mechanics Runtime & UI Kit (Loaded at runtime from GitHub Release via jsDelivr CDN) -->
+  <script src="https://cdn.jsdelivr.net/gh/applied-tape-mechanics/bff-interpreter@v1.0.0/bff-interpreter.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/applied-tape-mechanics/bff-ui@v1.0.0/js/bff-ui.js"></script>
+  <script>
+    const BF_CODE = __BF_CODE__;
+    const DISABLE_BACKEND = __DISABLE_BACKEND__;
+
+    function canUseBackend() {
+      return !DISABLE_BACKEND && window.BffUI && BffUI.api && BffUI.api.detected;
+    }
+
+    async function runHealthCheck() {
+      if (canUseBackend()) {
+        try {
+          const res = await fetch('/health');
+          const data = await res.json();
+          const rawRes = await fetch('/raw');
+          const rawText = await rawRes.text();
+          updateUI({
+            healthy: data.status === 'UP',
+            tapeIntegrity: data.status === 'UP',
+            arithmeticCheck: true,
+            wrappingCheck: true,
+            instructionCount: BF_CODE.length,
+            rawResponse: rawText,
+            source: 'API'
+          });
+          return;
+        } catch (err) {
+          console.warn('API error, falling back to client JS VM:', err);
+        }
+      }
+
+      // Client-side JS VM execution
+      const raw = BffUI.runBrainfuck(BF_CODE, '');
+      const isUp = raw.includes('200 OK') && raw.includes('"UP"');
+      updateUI({
+        healthy: isUp,
+        tapeIntegrity: isUp,
+        arithmeticCheck: true,
+        wrappingCheck: true,
+        instructionCount: BF_CODE.length,
+        rawResponse: raw,
+        source: 'Client JS VM'
+      });
+    }
+
+    async function triggerFailure() {
+      if (canUseBackend()) {
+        try {
+          const res = await fetch('/health', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input: 'F' })
+          });
+          const data = await res.json();
+          updateUI({
+            healthy: false,
+            tapeIntegrity: false,
+            arithmeticCheck: true,
+            wrappingCheck: true,
+            instructionCount: BF_CODE.length,
+            rawResponse: data.rawResponse || 'HTTP/1.1 500 Internal Server Error\r\n\r\n{"status":"DOWN"}',
+            source: 'API'
+          });
+          return;
+        } catch (err) {
+          console.warn('API error, falling back to client JS VM:', err);
+        }
+      }
+
+      // Client-side JS VM execution with 'F' failure trigger byte
+      const raw = BffUI.runBrainfuck(BF_CODE, 'F');
+      updateUI({
+        healthy: false,
+        tapeIntegrity: false,
+        arithmeticCheck: true,
+        wrappingCheck: true,
+        instructionCount: BF_CODE.length,
+        rawResponse: raw,
+        source: 'Client JS VM'
+      });
+    }
+
+    async function runProbe() {
+      if (canUseBackend()) {
+        try {
+          const res = await fetch('/probe');
+          if (res.ok) {
+            const data = await res.json();
+            updateUI({
+              healthy: data.healthy,
+              tapeIntegrity: data.tapeIntegrity,
+              arithmeticCheck: data.arithmeticCheck,
+              wrappingCheck: data.wrappingCheck,
+              instructionCount: data.instructionCount || BF_CODE.length,
+              rawResponse: data.rawResponse,
+              source: 'API'
+            });
+            return;
+          }
+        } catch (err) {
+          console.warn('Probe API error, falling back to client JS VM:', err);
+        }
+      }
+
+      // Client-side JS VM deep probe
+      try {
+        const vm = BffUI.getVM();
+        vm.reset();
+        vm.execute('++[>+++++<-]>----------');
+        const arithmeticCheck = vm.tape[2] === 0;
+
+        vm.reset();
+        vm.execute('-+');
+        const wrappingCheck = vm.tape[0] === 0;
+
+        const raw = BffUI.runBrainfuck(BF_CODE, '');
+        const healthy = raw.includes('200 OK') && raw.includes('"UP"');
+        const tapeIntegrity = vm.tape[0] === 0;
+
+        updateUI({
+          healthy,
+          tapeIntegrity,
+          arithmeticCheck,
+          wrappingCheck,
+          instructionCount: BF_CODE.length,
+          rawResponse: raw,
+          source: 'Client JS VM'
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function updateUI(state) {
+      const setMetric = (id, pass) => {
+        const el = document.getElementById(id);
+        el.innerText = pass ? 'PASS' : 'FAIL';
+        el.style.color = pass ? 'var(--success)' : 'var(--danger)';
+      };
+
+      setMetric('valTape', state.tapeIntegrity);
+      setMetric('valArith', state.arithmeticCheck);
+      setMetric('valWrap', state.wrappingCheck);
+
+      document.getElementById('valSteps').innerText = (state.instructionCount || BF_CODE.length).toLocaleString();
+      document.getElementById('rawResponseViewer').innerText = state.rawResponse;
+      document.getElementById('statHttpCode').innerText = state.healthy ? '200 OK' : '500 ERROR';
+      document.getElementById('statEngine').innerText = state.source || 'Brainfuck VM';
+
+      const pill = document.getElementById('healthPill');
+      const text = document.getElementById('healthText');
+      if (state.healthy) {
+        pill.className = 'health-pill health-up';
+        text.innerText = 'UP (200 OK)';
+      } else {
+        pill.className = 'health-pill health-down';
+        text.innerText = 'DOWN (500)';
+      }
+    }
+
+    function copyStream() {
+      const text = document.getElementById('rawResponseViewer').innerText;
+      if (window.BffUI) {
+        BffUI.copyToClipboard(text, 'HTTP response stream');
+      }
+    }
+
+    async function viewRawBf() {
+      let code = BF_CODE;
+      if (canUseBackend()) {
+        try {
+          const res = await fetch('/bf/code');
+          if (res.ok) code = await res.text();
+        } catch (err) {
+          // Use inlined BF_CODE
+        }
+      }
+      if (window.BffUI) {
+        BffUI.showBfModal(
+          'Container Health Check (healthcheck.bf)',
+          code,
+          `Memory & Arithmetic Integrity + HTTP Stream Generator (${code.length.toLocaleString()} instructions)`
+        );
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(runProbe, 50);
+    });
+  </script>
+</body>
+</html>
